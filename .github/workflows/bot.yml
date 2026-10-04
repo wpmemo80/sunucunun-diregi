@@ -1,0 +1,100 @@
+name: Sunucunun Direği (7/24 bot)
+
+# 5 dakikada bir tetiklenir; her çalıştırma ~6 dakika sürer (cron aralığından uzun),
+# böylece çalıştırma aralarında boşluk kalmaz ve Aternos uyumaz.
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+# Aynı anda tek instance çalışsın (çift giriş olmasın)
+concurrency:
+  group: sunucunun-diregi
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Elle başlatıldığında uzun (kod girme süresi), zamanlanmışta ~6 dk
+      BOT_RUN_SECONDS: ${{ github.event_name == 'workflow_dispatch' && '1200' || '360' }}
+      TZ: Europe/Istanbul
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: npm önbelleği
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-
+
+      # Microsoft giriş token'ları (botun "hatırladığı" hesap). Her çalıştırmada
+      # güncellenir, sonraki çalıştırmada geri yüklenir → kod bir kez girilir.
+      - name: Microsoft token önbelleği
+        uses: actions/cache@v4
+        with:
+          path: cache/msa
+          key: msa-${{ github.run_id }}
+          restore-keys: msa-
+
+      - name: Bağımlılıkları kur
+        run: |
+          mkdir -p cache/msa
+          # SKIP_BUILD: native RakNet'i npm install sırasında derleme (hızlı),
+          # aşağıda hazır binary'yi kullanacağız.
+          SKIP_BUILD=1 npm install --omit=dev --no-audit --no-fund \
+            || SKIP_BUILD=1 npm install --omit=dev --ignore-scripts --no-audit --no-fund
+
+          # RakNet, işletim sistemine göre klasör bakar (linux-6-x64). Pakette
+          # linux-5-x64 binary'si var; N-API olduğu için kernel 6'da da çalışır.
+          KER=$(uname -r | cut -d. -f1)
+          DEST="node_modules/raknet-native/prebuilds/linux-${KER}-x64"
+          if [ ! -f "$DEST/node-raknet.node" ]; then
+            cp -r node_modules/raknet-native/prebuilds/linux-5-x64 "$DEST"
+            echo "prebuild kopyalandi -> $DEST"
+          fi
+
+          # Yüklenemediyse kaynaktan derlemeyi dene (son çare)
+          if ! node -e "require('raknet-native')"; then
+            echo "prebuild yuklenemedi, kaynaktan derleniyor..."
+            npm rebuild raknet-native
+            node -e "require('raknet-native'); console.log('raknet-native OK (derlendi)')"
+          fi
+          echo "raknet-native OK"
+
+      - name: Botu çalıştır
+        run: node bot.js
+
+      # Depoyu canlı tutar (60 gün hareketsizlikte scheduled workflow kapanır)
+      # ve senin için günlük "uptime" kaydı oluşturur. Günde bir kez commit atılır.
+      - name: Günlük durum kaydı
+        if: always()
+        run: |
+          git config user.name "sunucunun-diregi"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          TODAY=$(date -u +%Y-%m-%d)
+          if [ ! -f durum/son.txt ] || ! grep -q "tarih: $TODAY" durum/son.txt; then
+            mkdir -p durum
+            {
+              echo "tarih: $TODAY"
+              echo "son-calistirma: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+              echo "calisma-saniyesi: ${{ env.BOT_RUN_SECONDS }}"
+            } > durum/son.txt
+            git add durum/son.txt
+            git diff --cached --quiet || git commit -m "bot durum: $TODAY"
+            git push || true
+          else
+            echo "Bugun zaten kayit var, commit atlandi."
+          fi
