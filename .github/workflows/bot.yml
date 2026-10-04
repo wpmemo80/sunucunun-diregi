@@ -1,7 +1,6 @@
 name: Sunucunun Direği (7/24 bot)
 
-# 5 dakikada bir tetiklenir; her çalıştırma ~6 dakika sürer (cron aralığından uzun),
-# böylece çalıştırma aralarında boşluk kalmaz ve Aternos uyumaz.
+# Sürekli döngü için zamanlayıcı (cron) ve manuel tetikleme
 on:
   schedule:
     - cron: '*/5 * * * *'
@@ -18,10 +17,10 @@ permissions:
 jobs:
   bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 360 # GitHub Actions maksimum sınırı (6 saat)
     env:
-      # Elle başlatıldığında uzun (kod girme süresi), zamanlanmışta ~6 dk
-      BOT_RUN_SECONDS: ${{ github.event_name == 'workflow_dispatch' && '1200' || '360' }}
+      # Bot 21000 saniye (~5.8 saat) çalışır, 6 saatlik limite takılmadan önce kapanır
+      BOT_RUN_SECONDS: '21000'
       TZ: Europe/Istanbul
 
     steps:
