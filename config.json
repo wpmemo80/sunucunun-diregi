@@ -1,0 +1,15 @@
+{
+  "host": "Agalarsmp-RLec.aternos.me",
+  "port": 34496,
+  "username": "Sunucunun direği",
+  "version": "1.21.42",
+  "offline": false,
+  "msaAccount": "aternos-bot",
+  "viewDistance": 4,
+  "antiAfkSeconds": 120,
+  "reconnectMinMs": 5000,
+  "reconnectMaxMs": 60000,
+  "connectTimeout": 15000,
+  "logChat": true,
+  "raknetBackend": ""
+}

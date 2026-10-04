@@ -1,0 +1,17 @@
+{
+  "name": "aternos-bot",
+  "version": "1.0.0",
+  "description": "Aternos Bedrock sunucusunu acik tutan bot (Sunucunun direği)",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "bedrock-protocol": "^3.60.1",
+    "pngjs": "^7.0.0"
+  }
+}
