@@ -1,3 +1,3 @@
-tarih: 2026-11-24
-son-calistirma: 2026-11-24T04:35:32Z
+tarih: 2026-11-25
+son-calistirma: 2026-11-25T00:04:47Z
 calisma-saniyesi: 21000
